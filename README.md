@@ -1,4 +1,4 @@
-# mcbot
+# mcdiscb
 
 Discord bot that runs a **Paper 26.x** server + **playit.gg** tunnel on your Arch box, on demand.
 
@@ -23,11 +23,11 @@ SkinsRestorer and PacketEvents are skipped with a warning if there's no build fo
 3. A free account at <https://playit.gg>.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/mcbot.git ~/mcbot
-cd ~/mcbot && ./setup.sh
+git clone https://github.com/shouai/mcdiscb.git ~/mcdiscb
+cd ~/mcdiscb && ./setup.sh
 ```
 
-Update the bot code later with `cd ~/mcbot && git pull`. Your `.env`, world, playit claim and logs are
+Update the bot code later with `cd ~/mcdiscb && git pull`. Your `.env`, world, playit claim and logs are
 git-ignored, so pulls never touch them.
 
 `setup.sh` installs Java 25 / tmux / playit (AUR `playit-bin`), makes a Python venv, asks for tokens + IDs,
@@ -37,7 +37,7 @@ asks for your tunnel address, and boots the server once to generate the world + 
 ## Daily use
 
 ```bash
-~/mcbot/start-bot.sh          # fish shortcut: alias --save mcbot ~/mcbot/start-bot.sh
+~/mcdiscb/start-bot.sh          # fish shortcut: alias --save mcdiscb ~/mcdiscb/start-bot.sh
 ```
 
 | Command | Who | What |
@@ -71,14 +71,14 @@ Extras: crash detection (posts the error), auto-restart of a dead tunnel, option
 
 - First join: players get a register dialog (or `/register <pw> <pw>`), later `/login <pw>`.
 - **Join with your own name first and register it**, then `/console op YourName`.
-- Everyone arrives through the tunnel from the same local IP, so mcbot sets AuthMe
+- Everyone arrives through the tunnel from the same local IP, so mcdiscb sets AuthMe
   `maxRegPerIp: 0`. Keep AuthMe **sessions disabled** (default) - with a shared IP they'd let
   anyone log in as the last player who used a name.
 - Forgot password: `/console authme unregister Name`.
 
 ## How it works
 
-- Everything runs in a private tmux server (`tmux -L mcbot`), so your own tmux is untouched.
+- Everything runs in a private tmux server (`tmux -L mcdiscb`), so your own tmux is untouched.
 - playit runs as **your user** (`playit/playitd.sock`, secret in `playit/playit.toml`), only while the
   server is up. `setup.sh` disables + masks the AUR package's 24/7 system service.
   Undo: `sudo systemctl unmask playit && sudo systemctl enable --now playit`.
@@ -92,4 +92,4 @@ Extras: crash detection (posts the error), auto-restart of a dead tunnel, option
 - **Players can't connect** → `./console.sh playit` should show the tunnel running; tunnel must point to `127.0.0.1:25565`.
 - **DiscordSRV silent** → chat-bridge bot needs both intents + access to the channel; see `/logs`.
 - **Crash on start about Java version** → `sudo pacman -S jre25-openjdk-headless` or set `JAVA_BIN`.
-- Autostart the bot with Hyprland: `exec-once = kitty -e ~/mcbot/start-bot.sh` (any terminal works).
+- Autostart the bot with Hyprland: `exec-once = kitty -e ~/mcdiscb/start-bot.sh` (any terminal works).

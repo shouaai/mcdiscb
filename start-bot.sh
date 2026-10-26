@@ -7,6 +7,6 @@ source "$(dirname "$(readlink -f "$0")")/lib.sh"
 
 [[ -x $VENV_PY ]] || die "Run ./setup.sh first."
 exec 9>"$PWD/.bot.lock"
-flock -n 9 || die "mcbot is already running in another terminal."
-printf '\e]0;mcbot - Minecraft server bot\a'
+flock -n 9 || die "mcdiscb is already running in another terminal."
+printf '\e]0;mcdiscb - Minecraft server bot\a'
 exec "$VENV_PY" -u bot.py "$@"

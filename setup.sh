@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup for mcbot on Arch Linux. Safe to re-run any time.
+# One-time setup for mcdiscb on Arch Linux. Safe to re-run any time.
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$(readlink -f "$0")")/lib.sh"
@@ -24,11 +24,11 @@ else
     (cd "$tmp/playit-bin" && makepkg -si --noconfirm)
     rm -rf "$tmp"
 fi
-# The AUR package turns on a 24/7 system service. mcbot runs playit itself only
+# The AUR package turns on a 24/7 system service. mcdiscb runs playit itself only
 # while the server is up, so switch that off. Undo: sudo systemctl unmask playit
 sudo systemctl disable --now playit.service >/dev/null 2>&1 || true
 sudo systemctl mask playit.service >/dev/null 2>&1 || true
-ok "playit ready (system service disabled - mcbot starts/stops its own)"
+ok "playit ready (system service disabled - mcdiscb starts/stops its own)"
 
 step "3/7 Python environment"
 [[ -x .venv/bin/python ]] || python -m venv .venv

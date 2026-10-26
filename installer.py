@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Downloads/updates Paper + plugins for mcbot.
+Downloads/updates Paper + plugins for mcdiscb.
 
   fresh install : picks the newest *stable* Paper version that DiscordSRV and
                   AuthMe both support (or MC_VERSION from .env)
@@ -38,7 +38,7 @@ MANIFEST = SERVER / "mcbot-versions.json"
 FILL = "https://fill.papermc.io/v3/projects/paper"
 MODRINTH = "https://api.modrinth.com/v2"
 CONTACT = (os.getenv("CONTACT") or "").strip() or "no-contact-set"
-UA = f"mcbot-setup/1.0 (self-hosted Paper server manager; contact: {CONTACT})"
+UA = f"mcdiscb-setup/1.0 (self-hosted Paper server manager; contact: {CONTACT})"
 
 
 @dataclass(frozen=True)
@@ -296,12 +296,12 @@ def handle_eula(accept: bool) -> None:
         if answer not in ("y", "yes"):
             die("You need to accept the EULA to run a Minecraft server.")
     stamp = dt.datetime.now().strftime("%a %b %d %H:%M:%S %Y")
-    eula.write_text(f"#Accepted via mcbot setup on {stamp}\neula=true\n")
+    eula.write_text(f"#Accepted via mcdiscb setup on {stamp}\neula=true\n")
     say("✓ EULA accepted")
 
 
 def server_running() -> bool:
-    return subprocess.run(["tmux", "-L", "mcbot", "has-session", "-t", "=mcserver"],
+    return subprocess.run(["tmux", "-L", "mcdiscb", "has-session", "-t", "=mcserver"],
                           capture_output=True).returncode == 0
 
 

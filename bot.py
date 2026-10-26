@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-mcbot - Discord bot that starts/stops a Paper Minecraft server and a
+mcdiscb - Discord bot that starts/stops a Paper Minecraft server and a
 playit.gg tunnel on demand.
 
-Everything runs inside a private tmux server (`tmux -L mcbot`), so you can
+Everything runs inside a private tmux server (`tmux -L mcdiscb`), so you can
 peek at the consoles any time with ./console.sh.
 
 Run it with ./start-bot.sh. Closing that terminal (or Ctrl+C) stops the
@@ -35,7 +35,7 @@ from mcstatus import JavaServer
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
-log = logging.getLogger("mcbot")
+log = logging.getLogger("mcdiscb")
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[()][A-Z0-9]|\r")
 DONE_RE = re.compile(r"Done \(\d+[.,]\d+s\)!")
@@ -44,8 +44,23 @@ CTRL_RE = re.compile(r"[\x00-\x1f\x7f]")
 SPARK_MEM_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(bytes|KB|MB|GB|TB)\s*/\s*(\d+(?:[.,]\d+)?)\s*(bytes|KB|MB|GB|TB)")
 BYTE_UNITS = {"bytes": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3, "TB": 1024**4}
 
-SECRET_ENV_KEYS = {"DISCORD_TOKEN", "DISCORDSRV_BOT_TOKEN"}
-TMUX_SOCKET = "mcbot"
+# DISCORDSRV_ONLY_CHAT=true: DiscordSRV only bridges chat + join/leave.
+# Everything else it would post or change in Discord is switched off on every /start.
+DSRV_QUIET_CONFIG = {
+    "ServerWatchdogEnabled": "false",                              # "server hasn't ticked" pings
+    "ChannelTopicUpdaterChannelTopicsAtShutdownEnabled": "false",  # channel topic edits
+    "DiscordChatChannelListCommandEnabled": "false",               # "playerlist" replies
+}
+DSRV_QUIET_MESSAGES = [  # set to "" = disabled
+    "DiscordChatChannelServerStartupMessage", "DiscordChatChannelServerShutdownMessage",
+    "ChannelTopicUpdaterChatChannelTopicFormat", "ChannelTopicUpdaterConsoleChannelTopicFormat",
+    "ChannelTopicUpdaterChatChannelTopicAtServerShutdownFormat",
+    "ChannelTopicUpdaterConsoleChannelTopicAtServerShutdownFormat",
+]
+DSRV_QUIET_BLOCKS = ["MinecraftPlayerDeathMessage", "MinecraftPlayerAchievementMessage"]  # Enabled: false
+
+SECRET_ENV_KEYS ={"DISCORD_TOKEN", "DISCORDSRV_BOT_TOKEN"}
+TMUX_SOCKET = "mcdiscb"
 SESSION = "mcserver"
 W_MC, W_PLAYITD, W_PLAYIT_UI = "minecraft", "playitd", "playit-ui"
 
@@ -123,6 +138,7 @@ class Config:
     dsrv_token: str
     dsrv_chat_channel: str
     dsrv_console_channel: str
+    dsrv_only_chat: bool
 
     @classmethod
     def load(cls) -> Config:
@@ -154,6 +170,7 @@ class Config:
             dsrv_token=_env("DISCORDSRV_BOT_TOKEN"),
             dsrv_chat_channel=_env("DISCORDSRV_CHAT_CHANNEL_ID"),
             dsrv_console_channel=_env("DISCORDSRV_CONSOLE_CHANNEL_ID"),
+            dsrv_only_chat=_env_bool("DISCORDSRV_ONLY_CHAT", True),
         )
 
 
@@ -168,7 +185,7 @@ class Pane:
 
 
 class Tmux:
-    """Thin async wrapper around a private tmux server (-L mcbot)."""
+    """Thin async wrapper around a private tmux server (-L mcdiscb)."""
 
     def __init__(self, socket: str = TMUX_SOCKET, session: str = SESSION,
                  conf: Path = BASE_DIR / "tmux.conf") -> None:
@@ -455,10 +472,25 @@ class ServerManager:
             if self.cfg.dsrv_console_channel:
                 new = re.sub(r"(?m)^DiscordConsoleChannelId:.*$",
                              lambda _: f'DiscordConsoleChannelId: "{self.cfg.dsrv_console_channel}"', new)
+            if self.cfg.dsrv_only_chat:
+                for key, value in DSRV_QUIET_CONFIG.items():
+                    new = re.sub(rf"(?m)^{key}:.*$", lambda _, k=key, v=value: f"{k}: {v}", new)
             if new != text:
                 dsrv.write_text(new)
-                changed.append("DiscordSRV token/channels")
+                changed.append("DiscordSRV config")
             dsrv.chmod(0o600)
+        dsrv_msgs = dsrv.with_name("messages.yml")
+        if dsrv_msgs.exists() and self.cfg.dsrv_only_chat:
+            text = new = dsrv_msgs.read_text()
+            for key in DSRV_QUIET_MESSAGES:
+                new = re.sub(rf"(?m)^{key}:.*$", lambda _, k=key: f'{k}: ""', new)
+            for block in DSRV_QUIET_BLOCKS:
+                # first "  Enabled:" line inside the block (not the nested Embed one)
+                new = re.sub(rf"(?m)^({block}:[ \t]*\n(?:[ \t]+\S.*\n)*?[ \t]{{2}}Enabled:)[ \t]*\w+",
+                             r"\g<1> false", new)
+            if new != text:
+                dsrv_msgs.write_text(new)
+                changed.append("DiscordSRV messages (chat + join/leave only)")
         authme = self.cfg.server_dir / "plugins" / "AuthMe" / "config.yml"
         if authme.exists():
             text = authme.read_text()
@@ -744,14 +776,14 @@ class ServerManager:
         return clean_text(out) or "(no output)"
 
     async def _spark_health(self) -> dict:
-        """Heap use + TPS from Paper's built-in spark profiler (`spark health`). Best effort."""
+        """Heap use + TPS from Paper's built-in spark profiler (`spark health show`). Best effort."""
         if self._spark_cache and time.monotonic() - self._spark_cache[0] < 15:
             return self._spark_cache[1]  # don't spam the console when people spam the command
         try:
             before = self.log_file.stat().st_size
         except OSError:
             before = 0
-        await self.tmux.send_line(W_MC, "spark health")
+        await self.tmux.send_line(W_MC, "spark health show")
         found: dict = {}
         for _ in range(24):  # spark answers asynchronously; give it up to ~6s
             await asyncio.sleep(0.25)
@@ -1099,7 +1131,6 @@ def register_commands(bot: McBot) -> None:
             if snap.names:
                 e.add_field(name="Online now", value=discord.utils.escape_markdown(", ".join(snap.names))[:1000],
                             inline=False)
-            e.add_field(name="Join", value=bot.address_line(), inline=False)
             e.set_footer(text=snap.version or f"Java Edition {bot.mc_version()}")
         elif snap.state is State.OFFLINE:
             e.description = "Use `/start` to launch it."
@@ -1126,9 +1157,7 @@ def register_commands(bot: McBot) -> None:
             e.description = "Server is offline - RAM and CPU usage show up after `/start`."
             e.add_field(name="RAM", value=f"{allocated} allocated")
         if r.worlds:
-            total = sum(size for _, size in r.worlds)
-            parts = "\n".join(f"`{name}` {fmt_bytes(size)}" for name, size in r.worlds)
-            e.add_field(name=f"World size: {fmt_bytes(total)}", value=parts, inline=False)
+            e.add_field(name="World size", value=fmt_bytes(sum(size for _, size in r.worlds)), inline=False)
         else:
             e.add_field(name="World size", value="No world yet - it's created on the first `/start`.", inline=False)
         await inter.followup.send(embed=e)

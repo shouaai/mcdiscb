@@ -1,10 +1,10 @@
 # shellcheck shell=bash disable=SC2034
-# Shared helpers for mcbot's shell scripts. Sourced, not run.
+# Shared helpers for mcdiscb's shell scripts. Sourced, not run.
 
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" || exit 1
 
 VENV_PY="$PWD/.venv/bin/python"
-TMUX_CMD=(tmux -L mcbot)
+TMUX_CMD=(tmux -L mcdiscb)
 
 c_bold=$'\e[1m'; c_green=$'\e[32m'; c_yellow=$'\e[33m'; c_red=$'\e[31m'; c_dim=$'\e[2m'; c_off=$'\e[0m'
 

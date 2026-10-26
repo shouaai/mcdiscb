@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claims the playit.gg agent that mcbot runs, and saves your tunnel address.
+# Claims the playit.gg agent that mcdiscb runs, and saves your tunnel address.
 # Usage: ./playit-setup.sh [--reset]
 set -euo pipefail
 # shellcheck source=lib.sh
