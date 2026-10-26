@@ -1,0 +1,16 @@
+# Secrets - never commit
+.env
+playit/
+
+# Created by setup / at runtime (big, machine-specific)
+server/
+.venv/
+logs/
+.bot.lock
+
+# Python / tooling
+__pycache__/
+*.pyc
+.ruff_cache/
+
+*.zip
