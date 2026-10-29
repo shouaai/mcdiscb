@@ -10,8 +10,7 @@ close terminal  ──►  same as /stop, then the bot exits
 ```
 
 Included: **DiscordSRV** (Discord ⇄ Minecraft chat), **AuthMe Reloaded** (passwords for offline mode),
-**SkinsRestorer** (real skins on an offline-mode server), PacketEvents (lets AuthMe hide inventories before login).
-SkinsRestorer and PacketEvents are skipped with a warning if there's no build for your Minecraft version yet.
+**SkinsRestorer** (real skins on an offline-mode server), PacketEvents (lets AuthMe hide inventories before login)
 
 ## Setup (once)
 
