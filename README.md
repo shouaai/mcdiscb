@@ -67,15 +67,6 @@ Extras: crash detection (posts the error), auto-restart of a dead tunnel, option
 | `playit-setup.sh [--reset]` | Re-claim the playit agent / change tunnel address |
 | `.env` | All settings (chmod 600, holds tokens - never committed) |
 
-## Offline mode + AuthMe
-
-- First join: players get a register dialog (or `/register <pw> <pw>`), later `/login <pw>`.
-- **Join with your own name first and register it**, then `/console op YourName`.
-- Everyone arrives through the tunnel from the same local IP, so mcdiscb sets AuthMe
-  `maxRegPerIp: 0`. Keep AuthMe **sessions disabled** (default) - with a shared IP they'd let
-  anyone log in as the last player who used a name.
-- Forgot password: `/console authme unregister Name`.
-
 ## How it works
 
 - Everything runs in a private tmux server (`tmux -L mcdiscb`), so your own tmux is untouched.
